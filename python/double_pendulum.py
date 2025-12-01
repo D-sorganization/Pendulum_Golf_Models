@@ -16,8 +16,10 @@ import into a Streamlit app or run directly.
 """
 
 from collections.abc import Callable
+from typing import Any
 
 import numpy as np  # noqa: TID253
+import numpy.typing as npt
 from scipy.integrate import solve_ivp
 
 # ---------------------------------------------------------------------------
@@ -40,7 +42,7 @@ g = 9.81  # gravity
 # ---------------------------------------------------------------------------
 
 
-def M_matrix(q: np.ndarray) -> np.ndarray:
+def M_matrix(q: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     """
     Inertia matrix M(q) for the planar 2-link manipulator / double pendulum.
 
@@ -70,7 +72,9 @@ def M_matrix(q: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def C_times_qdot(q: np.ndarray, qdot: np.ndarray) -> np.ndarray:
+def C_times_qdot(
+    q: npt.NDArray[np.float64], qdot: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
     """
     Compute C(q, qdot) * qdot for the double pendulum.
 
@@ -104,7 +108,7 @@ def C_times_qdot(q: np.ndarray, qdot: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def g_vector(q: np.ndarray) -> np.ndarray:
+def g_vector(q: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     """
     Gravity torque vector g(q) for the double pendulum.
 
@@ -131,7 +135,11 @@ def g_vector(q: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def tau_natural(q: np.ndarray, qdot: np.ndarray, qddot: np.ndarray) -> np.ndarray:
+def tau_natural(
+    q: npt.NDArray[np.float64],
+    qdot: npt.NDArray[np.float64],
+    qddot: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
     """
     Natural torque field for the double pendulum:
 
@@ -166,8 +174,10 @@ def tau_natural(q: np.ndarray, qdot: np.ndarray, qddot: np.ndarray) -> np.ndarra
 
 
 def double_pendulum_dynamics(
-    t: float, x: np.ndarray, u_func: Callable[[float, np.ndarray], np.ndarray]
-) -> np.ndarray:
+    t: float,
+    x: npt.NDArray[np.float64],
+    u_func: Callable[[float, npt.NDArray[np.float64]], npt.NDArray[np.float64]],
+) -> npt.NDArray[np.float64]:
     """
     State-space dynamics for the double pendulum.
 
@@ -211,7 +221,12 @@ def double_pendulum_dynamics(
 # ---------------------------------------------------------------------------
 
 
-def u_pd(_t: float, x: np.ndarray, kp: float = 10.0, kd: float = 2.0) -> np.ndarray:
+def u_pd(
+    _t: float,
+    x: npt.NDArray[np.float64],
+    kp: float = 10.0,
+    kd: float = 2.0,
+) -> npt.NDArray[np.float64]:
     """
     Simple PD control law around the downward configuration q = [0, 0].
 
@@ -237,10 +252,11 @@ def u_pd(_t: float, x: np.ndarray, kp: float = 10.0, kd: float = 2.0) -> np.ndar
     q = x[0:2]
     qdot = x[2:4]
 
-    q_des = np.array([0.0, 0.0])
-    qdot_des = np.array([0.0, 0.0])
+    q_des = np.array([0.0, 0.0], dtype=np.float64)
+    qdot_des = np.array([0.0, 0.0], dtype=np.float64)
 
-    return -kp * (q - q_des) - kd * (qdot - qdot_des)
+    result = -kp * (q - q_des) - kd * (qdot - qdot_des)
+    return np.asarray(result, dtype=np.float64)
 
 
 # ---------------------------------------------------------------------------
@@ -249,8 +265,9 @@ def u_pd(_t: float, x: np.ndarray, kp: float = 10.0, kd: float = 2.0) -> np.ndar
 
 
 def compute_tau_natural_trajectory(
-    sol, u_func: Callable[[float, np.ndarray], np.ndarray]
-) -> tuple[np.ndarray, np.ndarray]:
+    sol: Any,  # scipy.integrate.OdeResult doesn't have proper type stubs
+    u_func: Callable[[float, npt.NDArray[np.float64]], npt.NDArray[np.float64]],
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """
     Given a solution object `sol` from solve_ivp and an input function u_func,
     compute tau_nat(t) at each time sample.
@@ -269,16 +286,16 @@ def compute_tau_natural_trajectory(
     tau_nat_traj : ndarray, shape (N, 2)
         Natural torque trajectory at each time sample.
     """
-    t = sol.t
-    x = sol.y.T  # shape: (N, 4)
+    t = np.asarray(sol.t, dtype=np.float64)
+    x = np.asarray(sol.y.T, dtype=np.float64)
     N = x.shape[0]
-    tau_nat_traj = np.zeros((N, 2))
+    tau_nat_traj = np.zeros((N, 2), dtype=np.float64)
 
     for i in range(N):
         ti = t[i]
         xi = x[i]
-        q = xi[0:2]
-        qdot = xi[2:4]
+        q = np.asarray(xi[0:2], dtype=np.float64)
+        qdot = np.asarray(xi[2:4], dtype=np.float64)
 
         u = u_func(ti, xi)
         mq = M_matrix(q)
@@ -286,7 +303,9 @@ def compute_tau_natural_trajectory(
         gq = g_vector(q)
 
         # qddot from dynamics
-        qddot = np.linalg.solve(mq, u - cq - gq)
+        qddot = np.asarray(
+            np.linalg.solve(mq, u - cq - gq), dtype=np.float64
+        )
 
         # natural torque for this state
         tau_nat_traj[i, :] = tau_natural(q, qdot, qddot)
@@ -299,7 +318,7 @@ def compute_tau_natural_trajectory(
 # ---------------------------------------------------------------------------
 
 
-def J_end_effector(q: np.ndarray) -> np.ndarray:
+def J_end_effector(q: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     """
     Planar end-effector Jacobian for the tip of link 2.
 
@@ -329,7 +348,9 @@ def J_end_effector(q: np.ndarray) -> np.ndarray:
     return np.array([[dx_dq1, dx_dq2], [dy_dq1, dy_dq2], [1.0, 1.0]], dtype=float)
 
 
-def wrench_from_torque(q: np.ndarray, tau: np.ndarray) -> np.ndarray:
+def wrench_from_torque(
+    q: npt.NDArray[np.float64], tau: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
     """
     Approximate planar wrench [Fx, Fy, Mz] at the end-effector from joint torques.
 
@@ -352,7 +373,11 @@ def wrench_from_torque(q: np.ndarray, tau: np.ndarray) -> np.ndarray:
     return np.linalg.pinv(J.T) @ tau
 
 
-def natural_wrench(q: np.ndarray, qdot: np.ndarray, qddot: np.ndarray) -> np.ndarray:
+def natural_wrench(
+    q: npt.NDArray[np.float64],
+    qdot: npt.NDArray[np.float64],
+    qddot: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
     """
     Natural wrench at the end-effector corresponding to the natural torque field.
 
