@@ -19,7 +19,7 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np  # noqa: TID253
-import numpy.typing as npt  # noqa: TID253
+import numpy.typing as npt
 from scipy.integrate import solve_ivp
 
 # ---------------------------------------------------------------------------
