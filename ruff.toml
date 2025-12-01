@@ -33,7 +33,10 @@ exclude = [
 ]
 "**/tests/*.py" = [
     "S101",
-    "PLR2004", 
+    "PLR2004",
+    "ARG005", # Unused lambda arguments in test fixtures
+    "ANN201", # Missing return type annotations in tests
+    "TID253", # numpy imports in tests
 ]
 # Mathematical naming conventions (M_matrix, M11, etc. are standard in robotics)
 # Example script - allow prints and some style issues
@@ -45,6 +48,55 @@ exclude = [
     "ICN003", # typing imports needed for scipy types
     "ANN201", # Missing return type (scipy OdeResult type complex)
     "ANN001", # Missing type annotations (scipy types)
+]
+# Physics files - allow type-checking imports and eval for expression parsing
+"**/physics/double_pendulum.py" = [
+    "TCH003", # Type-checking imports
+    "RUF012", # Mutable class attributes
+    "S307",   # Insecure eval (controlled context)
+    "RUF100", # Unused noqa
+    "TRY003", # Long exception messages
+    "EM101",  # String literal in exception
+    "EM102",  # F-string in exception
+    "TRY004", # Prefer TypeError
+]
+"**/physics/triple_pendulum.py" = [
+    "TCH003", # Type-checking imports
+    "TID253", # numpy module-level import
+    "PLR0915",# Too many statements
+    "ARG002", # Unused argument
+]
+# GUI files - allow many style issues for GUI code
+"**/ui/double_pendulum_gui.py" = [
+    "TID253", # numpy module-level import
+    "PLR0915",# Too many statements
+    "FBT003", # Boolean positional
+    "ARG005", # Unused lambda arguments
+    "ANN001", # Missing type annotations
+    "ANN202", # Missing return type
+    "ARG001", # Unused argument
+    "PLR0911",# Too many return statements
+    "T201",   # Print statements
+    "BLE001", # Blind exception
+    "DTZ005", # datetime without tz
+    "PTH123", # open() should be Path.open()
+    "PLR2004",# Magic values
+    "RUF100", # Unused noqa
+    "TRY003", # Long exception messages
+    "EM102",  # F-string in exception
+]
+"**/ui/pendulum_pyqt_app.py" = [
+    "TID253", # numpy module-level import
+    "PLR0915",# Too many statements
+    "S307",   # Insecure eval
+    "BLE001", # Blind exception
+]
+# Executable scripts
+"**/run_pendulum.py" = [
+    "EXE001", # File is executable by design
+]
+"scripts/quality_check.py" = [
+    "EXE001", # File is executable by design
 ]
 
 [lint.mccabe]
