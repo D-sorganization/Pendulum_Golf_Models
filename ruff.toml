@@ -1,0 +1,122 @@
+# Ruff configuration for aggressive code quality
+
+target-version = "py313"
+line-length = 100
+
+[lint]
+# Enable ALL rules then selectively disable
+select = ["ALL"]
+ignore = [
+    "D",      # Docstring checks (we check separately)
+    "COM812", # Missing trailing comma (conflicts with black)
+    "ISC001", # Single line implicit string concat
+]
+
+# Stricter than defaults
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude legacy code
+exclude = [
+    "archive/",
+    "legacy/",
+    "experimental/",
+    "*/migrations/",
+    "*_pb2.py",
+]
+
+[lint.per-file-ignores]
+# Tests can be more relaxed
+"test_*.py" = [
+    "S101",   # Use of assert
+    "PLR2004", # Magic numbers allowed in tests
+]
+"**/tests/*.py" = [
+    "S101",
+    "PLR2004",
+    "ARG005", # Unused lambda arguments in test fixtures
+    "ANN201", # Missing return type annotations in tests
+    "TID253", # numpy imports in tests
+]
+# Mathematical naming conventions (M_matrix, M11, etc. are standard in robotics)
+# Example script - allow prints and some style issues
+"python/double_pendulum.py" = [
+    "N802",   # Function name should be lowercase (M_matrix is mathematical convention)
+    "N806",   # Variable should be lowercase (M11, M12, etc. are matrix elements)
+    "T201",   # Print statements allowed in example script
+    "RET504", # Unnecessary assignments acceptable for readability
+    "ICN003", # typing imports needed for scipy types
+    "ANN201", # Missing return type (scipy OdeResult type complex)
+    "ANN001", # Missing type annotations (scipy types)
+    "TID253", # numpy.typing needed for type annotations
+    "ANN401", # Any type needed for scipy OdeResult (no proper type stubs)
+]
+# Physics files - allow type-checking imports and eval for expression parsing
+"**/physics/double_pendulum.py" = [
+    "TCH003", # Type-checking imports
+    "RUF012", # Mutable class attributes
+    "S307",   # Insecure eval (controlled context)
+    "RUF100", # Unused noqa
+    "TRY003", # Long exception messages
+    "EM101",  # String literal in exception
+    "EM102",  # F-string in exception
+    "TRY004", # Prefer TypeError
+]
+"**/physics/triple_pendulum.py" = [
+    "TCH003", # Type-checking imports
+    "TID253", # numpy module-level import
+    "PLR0915",# Too many statements
+    "ARG002", # Unused argument
+]
+# GUI files - allow many style issues for GUI code
+"**/ui/double_pendulum_gui.py" = [
+    "TID253", # numpy module-level import
+    "PLR0915",# Too many statements
+    "FBT003", # Boolean positional
+    "ARG005", # Unused lambda arguments
+    "ANN001", # Missing type annotations
+    "ANN202", # Missing return type
+    "ARG001", # Unused argument
+    "PLR0911",# Too many return statements
+    "T201",   # Print statements
+    "BLE001", # Blind exception
+    "DTZ005", # datetime without tz
+    "PTH123", # open() should be Path.open()
+    "PLR2004",# Magic values
+    "RUF100", # Unused noqa
+    "TRY003", # Long exception messages
+    "EM102",  # F-string in exception
+]
+"**/ui/pendulum_pyqt_app.py" = [
+    "TID253", # numpy module-level import
+    "PLR0915",# Too many statements
+    "S307",   # Insecure eval
+    "BLE001", # Blind exception
+]
+# Executable scripts
+"**/run_pendulum.py" = [
+    "EXE001", # File is executable by design
+]
+"scripts/quality_check.py" = [
+    "EXE001", # File is executable by design
+]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 5
+max-branches = 10
+max-returns = 3
+max-statements = 30
+
+[lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+docstring-quotes = "double"
+
+[lint.flake8-import-conventions]
+banned-from = ["typing"]
+
+[lint.flake8-tidy-imports]
+banned-module-level-imports = ["numpy", "pandas"]  # Must import specific items
