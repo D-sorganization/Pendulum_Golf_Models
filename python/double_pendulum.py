@@ -15,27 +15,30 @@ This file is intended as a standalone module that you can
 import into a Streamlit app or run directly.
 """
 
-import numpy as np
+from collections.abc import Callable
+
+import numpy as np  # noqa: TID253
 from scipy.integrate import solve_ivp
 
 # ---------------------------------------------------------------------------
 # Physical parameters for the double pendulum
 # ---------------------------------------------------------------------------
 
-m1 = 1.0   # mass of link 1
-m2 = 1.0   # mass of link 2
-l1 = 1.0   # length of link 1
-l2 = 1.0   # length of link 2
-c1 = 0.5   # COM distance of link 1 from joint 1
-c2 = 0.5   # COM distance of link 2 from joint 2
+m1 = 1.0  # mass of link 1
+m2 = 1.0  # mass of link 2
+l1 = 1.0  # length of link 1
+l2 = 1.0  # length of link 2
+c1 = 0.5  # COM distance of link 1 from joint 1
+c2 = 0.5  # COM distance of link 2 from joint 2
 I1 = 0.05  # inertia of link 1 about its COM (out of plane)
 I2 = 0.05  # inertia of link 2 about its COM (out of plane)
-g  = 9.81  # gravity
+g = 9.81  # gravity
 
 
 # ---------------------------------------------------------------------------
 # Inertia matrix M(q)
 # ---------------------------------------------------------------------------
+
 
 def M_matrix(q: np.ndarray) -> np.ndarray:
     """
@@ -54,18 +57,18 @@ def M_matrix(q: np.ndarray) -> np.ndarray:
     q1, q2 = q
     cos2 = np.cos(q2)
 
-    M11 = I1 + I2 + m1 * c1**2 + m2 * (l1**2 + c2**2 + 2 * l1 * c2 * cos2)
-    M12 = I2 + m2 * (c2**2 + l1 * c2 * cos2)
-    M21 = M12
-    M22 = I2 + m2 * c2**2
+    m11 = I1 + I2 + m1 * c1**2 + m2 * (l1**2 + c2**2 + 2 * l1 * c2 * cos2)
+    m12 = I2 + m2 * (c2**2 + l1 * c2 * cos2)
+    m21 = m12
+    m22 = I2 + m2 * c2**2
 
-    return np.array([[M11, M12],
-                     [M21, M22]], dtype=float)
+    return np.array([[m11, m12], [m21, m22]], dtype=float)
 
 
 # ---------------------------------------------------------------------------
 # Coriolis / centrifugal term C(q, qdot) * qdot
 # ---------------------------------------------------------------------------
+
 
 def C_times_qdot(q: np.ndarray, qdot: np.ndarray) -> np.ndarray:
     """
@@ -100,6 +103,7 @@ def C_times_qdot(q: np.ndarray, qdot: np.ndarray) -> np.ndarray:
 # Gravity term g(q)
 # ---------------------------------------------------------------------------
 
+
 def g_vector(q: np.ndarray) -> np.ndarray:
     """
     Gravity torque vector g(q) for the double pendulum.
@@ -126,6 +130,7 @@ def g_vector(q: np.ndarray) -> np.ndarray:
 # Natural torque field tau_nat(q, qdot, qddot)
 # ---------------------------------------------------------------------------
 
+
 def tau_natural(q: np.ndarray, qdot: np.ndarray, qddot: np.ndarray) -> np.ndarray:
     """
     Natural torque field for the double pendulum:
@@ -149,17 +154,20 @@ def tau_natural(q: np.ndarray, qdot: np.ndarray, qddot: np.ndarray) -> np.ndarra
     tau_nat : ndarray, shape (2,)
         Natural torque vector.
     """
-    Mq = M_matrix(q) @ qddot
-    Cq = C_times_qdot(q, qdot)
+    mq = M_matrix(q) @ qddot
+    cq = C_times_qdot(q, qdot)
     gq = g_vector(q)
-    return Mq + Cq + gq
+    return mq + cq + gq
 
 
 # ---------------------------------------------------------------------------
 # State dynamics: x_dot = f(x, u)
 # ---------------------------------------------------------------------------
 
-def double_pendulum_dynamics(t: float, x: np.ndarray, u_func) -> np.ndarray:
+
+def double_pendulum_dynamics(
+    t: float, x: np.ndarray, u_func: Callable[[float, np.ndarray], np.ndarray]
+) -> np.ndarray:
     """
     State-space dynamics for the double pendulum.
 
@@ -188,12 +196,12 @@ def double_pendulum_dynamics(t: float, x: np.ndarray, u_func) -> np.ndarray:
 
     u = u_func(t, x)  # active torques
 
-    Mq = M_matrix(q)
-    Cq = C_times_qdot(q, qdot)
+    mq = M_matrix(q)
+    cq = C_times_qdot(q, qdot)
     gq = g_vector(q)
 
     # qddot = M^-1 (u - C(q,qdot) qdot - g(q))
-    qddot = np.linalg.solve(Mq, u - Cq - gq)
+    qddot = np.linalg.solve(mq, u - cq - gq)
 
     return np.concatenate([qdot, qddot])
 
@@ -202,7 +210,8 @@ def double_pendulum_dynamics(t: float, x: np.ndarray, u_func) -> np.ndarray:
 # Example input: simple PD around q = [0, 0]
 # ---------------------------------------------------------------------------
 
-def u_pd(t: float, x: np.ndarray, kp: float = 10.0, kd: float = 2.0) -> np.ndarray:
+
+def u_pd(_t: float, x: np.ndarray, kp: float = 10.0, kd: float = 2.0) -> np.ndarray:
     """
     Simple PD control law around the downward configuration q = [0, 0].
 
@@ -231,15 +240,17 @@ def u_pd(t: float, x: np.ndarray, kp: float = 10.0, kd: float = 2.0) -> np.ndarr
     q_des = np.array([0.0, 0.0])
     qdot_des = np.array([0.0, 0.0])
 
-    u = -kp * (q - q_des) - kd * (qdot - qdot_des)
-    return u
+    return -kp * (q - q_des) - kd * (qdot - qdot_des)
 
 
 # ---------------------------------------------------------------------------
 # Trajectory post-processing: reconstruct tau_nat(t)
 # ---------------------------------------------------------------------------
 
-def compute_tau_natural_trajectory(sol, u_func):
+
+def compute_tau_natural_trajectory(
+    sol, u_func: Callable[[float, np.ndarray], np.ndarray]
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Given a solution object `sol` from solve_ivp and an input function u_func,
     compute tau_nat(t) at each time sample.
@@ -270,12 +281,12 @@ def compute_tau_natural_trajectory(sol, u_func):
         qdot = xi[2:4]
 
         u = u_func(ti, xi)
-        Mq = M_matrix(q)
-        Cq = C_times_qdot(q, qdot)
+        mq = M_matrix(q)
+        cq = C_times_qdot(q, qdot)
         gq = g_vector(q)
 
         # qddot from dynamics
-        qddot = np.linalg.solve(Mq, u - Cq - gq)
+        qddot = np.linalg.solve(mq, u - cq - gq)
 
         # natural torque for this state
         tau_nat_traj[i, :] = tau_natural(q, qdot, qddot)
@@ -286,6 +297,7 @@ def compute_tau_natural_trajectory(sol, u_func):
 # ---------------------------------------------------------------------------
 # End-effector Jacobian and wrench reconstruction (optional)
 # ---------------------------------------------------------------------------
+
 
 def J_end_effector(q: np.ndarray) -> np.ndarray:
     """
@@ -311,15 +323,10 @@ def J_end_effector(q: np.ndarray) -> np.ndarray:
 
     dx_dq1 = -l1 * s1 - l2 * s12
     dx_dq2 = -l2 * s12
-    dy_dq1 =  l1 * c1 + l2 * c12
-    dy_dq2 =  l2 * c12
+    dy_dq1 = l1 * c1 + l2 * c12
+    dy_dq2 = l2 * c12
 
-    J = np.array([
-        [dx_dq1, dx_dq2],
-        [dy_dq1, dy_dq2],
-        [1.0,    1.0]
-    ], dtype=float)
-    return J
+    return np.array([[dx_dq1, dx_dq2], [dy_dq1, dy_dq2], [1.0, 1.0]], dtype=float)
 
 
 def wrench_from_torque(q: np.ndarray, tau: np.ndarray) -> np.ndarray:
@@ -342,9 +349,7 @@ def wrench_from_torque(q: np.ndarray, tau: np.ndarray) -> np.ndarray:
         Approximate planar wrench [Fx, Fy, Mz].
     """
     J = J_end_effector(q)
-    JT = J.T
-    w = np.linalg.pinv(JT) @ tau
-    return w
+    return np.linalg.pinv(J.T) @ tau
 
 
 def natural_wrench(q: np.ndarray, qdot: np.ndarray, qddot: np.ndarray) -> np.ndarray:
@@ -375,7 +380,8 @@ def natural_wrench(q: np.ndarray, qdot: np.ndarray, qddot: np.ndarray) -> np.nda
 # Example usage / quick test
 # ---------------------------------------------------------------------------
 
-def run_example():
+
+def run_example() -> None:
     """
     Run a simple simulation with PD input and print some diagnostics.
     """
@@ -391,13 +397,12 @@ def run_example():
         y0=x0,
         t_eval=t_eval,
         rtol=1e-8,
-        atol=1e-8
+        atol=1e-8,
     )
 
     # Compute natural torque trajectory
     t_samples, tau_nat_traj = compute_tau_natural_trajectory(
-        sol,
-        lambda t, x: u_pd(t, x)
+        sol, lambda t, x: u_pd(t, x)
     )
 
     # Simple console output

@@ -35,6 +35,17 @@ exclude = [
     "S101",
     "PLR2004", 
 ]
+# Mathematical naming conventions (M_matrix, M11, etc. are standard in robotics)
+# Example script - allow prints and some style issues
+"python/double_pendulum.py" = [
+    "N802",   # Function name should be lowercase (M_matrix is mathematical convention)
+    "N806",   # Variable should be lowercase (M11, M12, etc. are matrix elements)
+    "T201",   # Print statements allowed in example script
+    "RET504", # Unnecessary assignments acceptable for readability
+    "ICN003", # typing imports needed for scipy types
+    "ANN201", # Missing return type (scipy OdeResult type complex)
+    "ANN001", # Missing type annotations (scipy types)
+]
 
 [lint.mccabe]
 max-complexity = 10
