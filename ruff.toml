@@ -48,6 +48,8 @@ exclude = [
     "ICN003", # typing imports needed for scipy types
     "ANN201", # Missing return type (scipy OdeResult type complex)
     "ANN001", # Missing type annotations (scipy types)
+    "TID253", # numpy.typing needed for type annotations
+    "ANN401", # Any type needed for scipy OdeResult (no proper type stubs)
 ]
 # Physics files - allow type-checking imports and eval for expression parsing
 "**/physics/double_pendulum.py" = [
