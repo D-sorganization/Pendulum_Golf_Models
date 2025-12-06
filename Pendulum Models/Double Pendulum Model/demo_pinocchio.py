@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 
 # Ensure the current directory is in the python path to allow importing the package
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from double_pendulum_model.physics.double_pendulum import DoublePendulumState, DoublePendulumParameters
+from double_pendulum_model.physics.double_pendulum import (
+    DoublePendulumParameters,
+    DoublePendulumState,
+)
 from double_pendulum_model.physics.urdf import generate_urdf
 
-def run_demo():
+
+def run_demo() -> None:
     print("Double Pendulum Pinocchio Interface Demo")
     print("========================================")
 

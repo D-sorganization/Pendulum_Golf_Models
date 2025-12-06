@@ -52,7 +52,7 @@ exclude = [
     "ANN401", # Any type needed for scipy OdeResult (no proper type stubs)
 ]
 # Physics files - allow type-checking imports and eval for expression parsing
-"**/physics/double_pendulum.py" = [
+"**/physics/*.py" = [
     "TCH003", # Type-checking imports
     "RUF012", # Mutable class attributes
     "S307",   # Insecure eval (controlled context)
@@ -61,12 +61,20 @@ exclude = [
     "EM101",  # String literal in exception
     "EM102",  # F-string in exception
     "TRY004", # Prefer TypeError
-]
-"**/physics/triple_pendulum.py" = [
-    "TCH003", # Type-checking imports
     "TID253", # numpy module-level import
     "PLR0915",# Too many statements
     "ARG002", # Unused argument
+    "S318",   # XML parsing (urdf.py)
+    "N806",   # Mathematical naming (I1, I2, M, etc.)
+]
+"**/demo_pinocchio.py" = [
+    "T201",   # Print statements
+    "N806",   # Mathematical naming
+    "PLC0415",# Import outside top level
+    "TID253", # numpy module-level import
+    "PTH100", # os.path.abspath
+    "PTH120", # os.path.dirname
+    "BLE001", # Blind exception catching
 ]
 # GUI files - allow many style issues for GUI code
 "**/ui/double_pendulum_gui.py" = [

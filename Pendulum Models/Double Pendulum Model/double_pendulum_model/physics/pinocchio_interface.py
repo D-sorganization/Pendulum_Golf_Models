@@ -4,8 +4,10 @@ except ImportError:
     pin = None
 
 import numpy as np
+
 from .double_pendulum import DoublePendulumParameters, DoublePendulumState
 from .urdf import generate_urdf
+
 
 class PinocchioDoublePendulum:
     """
