@@ -13,6 +13,7 @@ from double_pendulum_model.physics.urdf import generate_urdf
 
 
 def run_demo() -> None:
+    """Run the Pinocchio interface demo."""
     print("Double Pendulum Pinocchio Interface Demo")
     print("========================================")
 
@@ -20,7 +21,7 @@ def run_demo() -> None:
     print("\nGenerating URDF (preview):")
     try:
         urdf = generate_urdf(DoublePendulumParameters.default())
-        print(urdf[:500] + "...\n(truncated)")
+        print(urdf[:500] + "...\n[truncated]")
     except Exception as e:
         print(f"Failed to generate URDF: {e}")
         return
@@ -28,7 +29,10 @@ def run_demo() -> None:
     # 2. Try to use Pinocchio Interface
     print("\nInitializing Pinocchio Double Pendulum...")
     try:
-        from double_pendulum_model.physics.pinocchio_interface import PinocchioDoublePendulum
+        from double_pendulum_model.physics.pinocchio_interface import (
+            PinocchioDoublePendulum,
+        )
+
         interface = PinocchioDoublePendulum()
         print("Model loaded successfully into Pinocchio.")
 
@@ -51,7 +55,10 @@ def run_demo() -> None:
 
     except ImportError as e:
         print(f"\nPinocchio not available: {e}")
-        print("Install 'pinocchio' (and 'meshcat' for vis) to enable full dynamics verification.")
+        print(
+            "Install 'pinocchio' (and 'meshcat' for vis) to enable full dynamics verification."
+        )
+
 
 if __name__ == "__main__":
     run_demo()

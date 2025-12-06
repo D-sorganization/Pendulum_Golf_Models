@@ -10,7 +10,10 @@ def prettify(elem: ET.Element) -> str:
     reparsed = minidom.parseString(rough_string)
     return reparsed.toprettyxml(indent="  ")
 
-def generate_urdf(params: DoublePendulumParameters, robot_name: str = "double_pendulum") -> str:
+
+def generate_urdf(
+    params: DoublePendulumParameters, robot_name: str = "double_pendulum"
+) -> str:
     """
     Generate a URDF string for the double pendulum with the given parameters.
 
@@ -69,11 +72,15 @@ def generate_urdf(params: DoublePendulumParameters, robot_name: str = "double_pe
     # We rotate around Y axis by -inclination to tilt the X axis (rotation axis)
     # If inclination=0, rotation=0. Axis=X (horizontal).
     # If inclination=90, rotation=-90. Axis=Z (vertical).
-    joint_world_plane = ET.SubElement(robot, "joint", name="joint_world_plane", type="fixed")
+    joint_world_plane = ET.SubElement(
+        robot, "joint", name="joint_world_plane", type="fixed"
+    )
     ET.SubElement(joint_world_plane, "parent", link="world")
     ET.SubElement(joint_world_plane, "child", link="plane_base")
     # rpy is roll, pitch, yaw. Pitch is Y rotation.
-    ET.SubElement(joint_world_plane, "origin", xyz="0 0 0", rpy=f"0 {-inclination_rad} 0")
+    ET.SubElement(
+        joint_world_plane, "origin", xyz="0 0 0", rpy=f"0 {-inclination_rad} 0"
+    )
 
     # Link 1
     link1 = ET.SubElement(robot, "link", name="link1")
@@ -90,16 +97,23 @@ def generate_urdf(params: DoublePendulumParameters, robot_name: str = "double_pe
     ET.SubElement(inertial1, "origin", xyz=f"0 0 {-lc1}", rpy="0 0 0")
     ET.SubElement(inertial1, "mass", value=str(m1))
     # Inertia tensor. Rotation around X.
-    ET.SubElement(inertial1, "inertia",
-                  ixx=str(I1), iyy=str(I1), izz="0.001",
-                  ixy="0", ixz="0", iyz="0")
+    ET.SubElement(
+        inertial1,
+        "inertia",
+        ixx=str(I1),
+        iyy=str(I1),
+        izz="0.001",
+        ixy="0",
+        ixz="0",
+        iyz="0",
+    )
 
     # Joint 1
     joint1 = ET.SubElement(robot, "joint", name="joint1", type="continuous")
     ET.SubElement(joint1, "parent", link="plane_base")
     ET.SubElement(joint1, "child", link="link1")
     ET.SubElement(joint1, "origin", xyz="0 0 0", rpy="0 0 0")
-    ET.SubElement(joint1, "axis", xyz="1 0 0") # Rotate around X
+    ET.SubElement(joint1, "axis", xyz="1 0 0")  # Rotate around X
 
     # Link 2
     link2 = ET.SubElement(robot, "link", name="link2")
@@ -115,15 +129,22 @@ def generate_urdf(params: DoublePendulumParameters, robot_name: str = "double_pe
     inertial2 = ET.SubElement(link2, "inertial")
     ET.SubElement(inertial2, "origin", xyz=f"0 0 {-lc2}", rpy="0 0 0")
     ET.SubElement(inertial2, "mass", value=str(m2))
-    ET.SubElement(inertial2, "inertia",
-                  ixx=str(I2), iyy=str(I2), izz="0.001",
-                  ixy="0", ixz="0", iyz="0")
+    ET.SubElement(
+        inertial2,
+        "inertia",
+        ixx=str(I2),
+        iyy=str(I2),
+        izz="0.001",
+        ixy="0",
+        ixz="0",
+        iyz="0",
+    )
 
     # Joint 2
     joint2 = ET.SubElement(robot, "joint", name="joint2", type="continuous")
     ET.SubElement(joint2, "parent", link="link1")
     ET.SubElement(joint2, "child", link="link2")
     ET.SubElement(joint2, "origin", xyz=f"0 0 {-l1}", rpy="0 0 0")
-    ET.SubElement(joint2, "axis", xyz="1 0 0") # Rotate around X
+    ET.SubElement(joint2, "axis", xyz="1 0 0")  # Rotate around X
 
     return prettify(robot)

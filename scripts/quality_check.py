@@ -118,6 +118,21 @@ def check_banned_patterns(
         # Check for basic banned patterns
         for pattern, message in BANNED_PATTERNS:
             if pattern.search(line):
+                # Filter out known false positives for angle brackets (Tkinter events, etc.)
+                if "Angle bracket placeholder" in message:
+                    if any(
+                        fp in line
+                        for fp in [
+                            "<ExpressionFunction>",
+                            "<Configure>",
+                            "<KeyRelease>",
+                            "<Enter>",
+                            "<Leave>",
+                            "<Key>",
+                            "<Button-",
+                        ]
+                    ):
+                        continue
                 issues.append((line_num, message, line.strip()))
 
         # Special handling for pass statements
