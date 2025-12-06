@@ -56,7 +56,7 @@ def M_matrix(q: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     M : ndarray, shape (2, 2)
         Inertia matrix.
     """
-    q1, q2 = q
+    _q1, q2 = q
     cos2 = np.cos(q2)
 
     m11 = I1 + I2 + m1 * c1**2 + m2 * (l1**2 + c2**2 + 2 * l1 * c2 * cos2)
@@ -90,7 +90,7 @@ def C_times_qdot(
     Cq : ndarray, shape (2,)
         Vector C(q, qdot) * qdot.
     """
-    q1, q2 = q
+    _q1, q2 = q
     q1dot, q2dot = qdot
 
     # Common factor
