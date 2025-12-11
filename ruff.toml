@@ -43,7 +43,6 @@ exclude = [
 "python/double_pendulum.py" = [
     "N802",   # Function name should be lowercase (M_matrix is mathematical convention)
     "N806",   # Variable should be lowercase (M11, M12, etc. are matrix elements)
-    "T201",   # Print statements allowed in example script
     "RET504", # Unnecessary assignments acceptable for readability
     "ICN003", # typing imports needed for scipy types
     "ANN201", # Missing return type (scipy OdeResult type complex)

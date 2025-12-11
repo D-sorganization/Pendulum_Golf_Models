@@ -15,12 +15,15 @@ This file is intended as a standalone module that you can
 import into a Streamlit app or run directly.
 """
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 from scipy.integrate import solve_ivp
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Physical parameters for the double pendulum
@@ -410,6 +413,8 @@ def run_example() -> None:
     """
     Run a simple simulation with PD input and print some diagnostics.
     """
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     # Initial condition: some arbitrary initial angles/velocities
     x0 = np.array([0.5, -0.5, 0.0, 0.0], dtype=float)
     t_span = (0.0, 5.0)
@@ -431,10 +436,9 @@ def run_example() -> None:
     )
 
     # Simple console output
-    print("Simulation completed.")
-    print(f"Number of time steps: {len(t_samples)}")
-    print("First few natural torque samples:")
-    print(tau_nat_traj[:5, :])
+    logger.info("Simulation completed.")
+    logger.info("Number of time steps: %d", len(t_samples))
+    logger.info("First few natural torque samples:\n%s", tau_nat_traj[:5, :])
 
 
 if __name__ == "__main__":
