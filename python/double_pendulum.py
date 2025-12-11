@@ -291,24 +291,20 @@ def compute_tau_natural_trajectory(
     N = x.shape[0]
     tau_nat_traj = np.zeros((N, 2), dtype=np.float64)
 
+    # Optimization: The dynamics equation is:
+    #   qddot = M^-1 (u - C qdot - g)
+    # The natural torque definition is:
+    #   tau_nat = M qddot + C qdot + g
+    # Substituting qddot gives:
+    #   tau_nat = M (M^-1 (u - C qdot - g)) + C qdot + g
+    #           = (u - C qdot - g) + C qdot + g
+    #           = u
+    # Therefore, we can skip the expensive matrix calculations and just evaluate u_func.
+
     for i in range(N):
         ti = t[i]
         xi = x[i]
-        q = np.asarray(xi[0:2], dtype=np.float64)
-        qdot = np.asarray(xi[2:4], dtype=np.float64)
-
-        u = u_func(ti, xi)
-        mq = M_matrix(q)
-        cq = C_times_qdot(q, qdot)
-        gq = g_vector(q)
-
-        # qddot from dynamics
-        qddot = np.asarray(
-            np.linalg.solve(mq, u - cq - gq), dtype=np.float64
-        )
-
-        # natural torque for this state
-        tau_nat_traj[i, :] = tau_natural(q, qdot, qddot)
+        tau_nat_traj[i, :] = u_func(ti, xi)
 
     return t, tau_nat_traj
 
