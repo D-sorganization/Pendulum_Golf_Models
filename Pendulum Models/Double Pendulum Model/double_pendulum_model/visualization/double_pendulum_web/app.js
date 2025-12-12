@@ -57,6 +57,19 @@ function parseInputs() {
   params.plane = Number(document.getElementById('plane').value);
   params.tau1Expr = document.getElementById('tau1').value || '0';
   params.tau2Expr = document.getElementById('tau2').value || '0';
+
+  // Pre-compile torque functions
+  const contextKeys = ['t', 'theta1', 'theta2', 'omega1', 'omega2', 'Math'];
+  try {
+    params.tau1Fn = new Function(...contextKeys, `return ${params.tau1Expr};`);
+  } catch (e) {
+    params.tau1Fn = () => 0;
+  }
+  try {
+    params.tau2Fn = new Function(...contextKeys, `return ${params.tau2Expr};`);
+  } catch (e) {
+    params.tau2Fn = () => 0;
+  }
 }
 
 function validateExpression(expr) {
@@ -71,6 +84,7 @@ function validateExpression(expr) {
 }
 
 function safeEval(expr, context) {
+  // Keeping safeEval for compatibility if needed, but not used in loop anymore
   try {
     const fn = new Function(...Object.keys(context), `return ${expr};`);
     return Number(fn(...Object.values(context)));
@@ -114,8 +128,15 @@ function damping(omega1, omega2) {
 }
 
 function torques(t, s) {
-  const ctx = { t, theta1: s.theta1, theta2: s.theta2, omega1: s.omega1, omega2: s.omega2, Math };
-  return [safeEval(params.tau1Expr, ctx), safeEval(params.tau2Expr, ctx)];
+  // Use pre-compiled functions for performance
+  try {
+    return [
+      Number(params.tau1Fn(t, s.theta1, s.theta2, s.omega1, s.omega2, Math)),
+      Number(params.tau2Fn(t, s.theta1, s.theta2, s.omega1, s.omega2, Math))
+    ];
+  } catch (e) {
+    return [0, 0];
+  }
 }
 
 function invert2x2(m) {
@@ -129,8 +150,13 @@ function derivatives(t, s) {
   const g = gravityVector(s.theta1, s.theta2);
   const d = damping(s.omega1, s.omega2);
   const inv = invert2x2(massMatrix(s.theta2));
-  const acc1 = inv[0][0] * (tau[0] - c[0] - g[0] - d[0]) + inv[0][1] * (tau[1] - c[1] - g[1] - d[1]);
-  const acc2 = inv[1][0] * (tau[0] - c[0] - g[0] - d[0]) + inv[1][1] * (tau[1] - c[1] - g[1] - d[1]);
+
+  // Optimization: Pre-calculate net torques
+  const net1 = tau[0] - c[0] - g[0] - d[0];
+  const net2 = tau[1] - c[1] - g[1] - d[1];
+
+  const acc1 = inv[0][0] * net1 + inv[0][1] * net2;
+  const acc2 = inv[1][0] * net1 + inv[1][1] * net2;
   return [s.omega1, s.omega2, acc1, acc2];
 }
 
