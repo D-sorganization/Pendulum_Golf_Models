@@ -59,6 +59,17 @@ function parseInputs() {
   params.tau2Expr = document.getElementById('tau2').value || '0';
 }
 
+function validateExpression(expr) {
+  try {
+    // Check for syntax errors using the same variables as safeEval
+    const vars = ['t', 'theta1', 'theta2', 'omega1', 'omega2', 'Math'];
+    new Function(...vars, `return ${expr};`);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 function safeEval(expr, context) {
   try {
     const fn = new Function(...Object.keys(context), `return ${expr};`);
@@ -247,5 +258,14 @@ function reset() {
 ['start', 'pause', 'reset'].forEach(id => document.getElementById(id).addEventListener('click', () => {
   ({ start, pause, reset })[id]();
 }));
+
+['tau1', 'tau2'].forEach(id => {
+  const input = document.getElementById(id);
+  input.addEventListener('input', () => {
+    const isValid = validateExpression(input.value);
+    input.classList.toggle('input-error', !isValid);
+    input.setAttribute('aria-invalid', !isValid);
+  });
+});
 
 reset();
