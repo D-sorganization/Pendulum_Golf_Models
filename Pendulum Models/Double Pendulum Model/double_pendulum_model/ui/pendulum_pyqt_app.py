@@ -20,6 +20,7 @@ from double_pendulum_model.physics.triple_pendulum import (
     TriplePendulumParameters,
     TriplePendulumState,
 )
+from double_pendulum_model.safe_eval import SafeEvaluator
 
 TIME_STEP = 0.01
 
@@ -217,17 +218,9 @@ class PendulumController(QtWidgets.QWidget):
 
     def _safe_eval(self, expression: str) -> float:
         try:
-            return float(
-                eval(
-                    expression,
-                    {
-                        "__builtins__": {},
-                        "pi": math.pi,
-                        "sin": math.sin,
-                        "cos": math.cos,
-                    },
-                )
-            )
+            # For immediate evaluation in UI, we don't allow variables
+            evaluator = SafeEvaluator(allowed_variables=set())
+            return evaluator.evaluate(expression)
         except Exception:
             return 0.0
 
