@@ -9,10 +9,11 @@ for educational demonstrations of chaos and control.
 
 from __future__ import annotations
 
-import ast
 import math
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+
+from double_pendulum_model.safe_eval import SafeEvaluator
 
 # Physical constants with documented units and references
 # International gravity standard at 45 degrees latitude (m/s^2)
@@ -46,84 +47,22 @@ class ExpressionFunction:
     arbitrary code execution.
     """
 
-    _ALLOWED_NODES = {
-        ast.Expression,
-        ast.BinOp,
-        ast.UnaryOp,
-        ast.Name,
-        ast.Load,
-        ast.Add,
-        ast.Sub,
-        ast.Mult,
-        ast.Div,
-        ast.Pow,
-        ast.Mod,
-        ast.USub,
-        ast.UAdd,
-        ast.Call,
-        ast.Constant,
-        ast.Attribute,
-        ast.BitXor,
-    }
-
-    _ALLOWED_NAMES = {
-        name: getattr(math, name)
-        for name in (
-            "sin",
-            "cos",
-            "tan",
-            "asin",
-            "acos",
-            "atan",
-            "atan2",
-            "sqrt",
-            "log",
-            "log10",
-            "exp",
-            "pi",
-            "tau",
-            "fabs",
-        )
-    }
-
     def __init__(self, expression: str) -> None:
-        self.expression = expression.strip()
-        parsed = ast.parse(self.expression, mode="eval")
-        self._validate_ast(parsed)
-        self._code = compile(parsed, filename="<ExpressionFunction>", mode="eval")
+        self.expression = expression
+        self.evaluator = SafeEvaluator(
+            allowed_variables={"t", "theta1", "theta2", "omega1", "omega2"}
+        )
+        self._code = self.evaluator.compile(expression)
 
     def __call__(self, t: float, state: DoublePendulumState) -> float:
-        context: dict[str, float] = {
+        context = {
             "t": t,
             "theta1": state.theta1,
             "theta2": state.theta2,
             "omega1": state.omega1,
             "omega2": state.omega2,
-            **self._ALLOWED_NAMES,
         }
-        result = eval(self._code, {"__builtins__": {}}, context)
-        return float(result)
-
-    def _validate_ast(self, node: ast.AST) -> None:
-        for child in ast.walk(node):
-            if (
-                type(child) not in self._ALLOWED_NODES
-            ):  # noqa: E721 - type comparison is intentional
-                raise ValueError(f"Disallowed syntax in expression: {type(child).__name__}")
-            if isinstance(child, ast.Name) and child.id not in {
-                "t",
-                "theta1",
-                "theta2",
-                "omega1",
-                "omega2",
-                *self._ALLOWED_NAMES,
-            }:
-                raise ValueError(f"Use of unknown variable '{child.id}' in expression")
-            if isinstance(child, ast.Call):
-                if not isinstance(child.func, ast.Name | ast.Attribute):
-                    raise ValueError("Only direct function calls are permitted")
-                if isinstance(child.func, ast.Name) and child.func.id not in self._ALLOWED_NAMES:
-                    raise ValueError(f"Function '{child.func.id}' is not permitted")
+        return self.evaluator.evaluate_code(self._code, context)
 
 
 @dataclass
@@ -322,7 +261,7 @@ class DoublePendulumDynamics:
         c1, c2 = self.coriolis_vector(state.theta2, state.omega1, state.omega2)
         g1, g2 = self.gravity_vector(state.theta1, state.theta2)
         d1, d2 = self.damping_vector(state.omega1, state.omega2)
-        mass, inv_m = self._invert_mass_matrix(state.theta2)
+        _, inv_m = self._invert_mass_matrix(state.theta2)
 
         drift_acc1 = -(inv_m[0][0] * (c1 + g1 + d1) + inv_m[0][1] * (c2 + g2 + d2))
         drift_acc2 = -(inv_m[1][0] * (c1 + g1 + d1) + inv_m[1][1] * (c2 + g2 + d2))
