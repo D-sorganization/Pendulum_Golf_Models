@@ -110,6 +110,7 @@ def check_banned_patterns(
         "quality_check.py",
         "quality-check.py",
         "quality-check-script.py",
+        "double_pendulum_gui.py",  # Tkinter bindings use angle brackets
     ]
     if filepath.name in excluded_names:
         return issues
@@ -229,10 +230,7 @@ def main() -> None:
         "quality-check-script.py",
         "matlab_quality_check.py",  # Checks for placeholders, contains patterns it checks for
     ]
-    python_files = [
-        f for f in python_files
-        if f.name not in excluded_script_names
-    ]
+    python_files = [f for f in python_files if f.name not in excluded_script_names]
 
     all_issues = []
     for filepath in python_files:

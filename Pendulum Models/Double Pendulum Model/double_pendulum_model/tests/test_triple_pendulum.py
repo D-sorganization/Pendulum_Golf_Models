@@ -8,7 +8,8 @@ from double_pendulum_model.physics.triple_pendulum import (
 )
 
 
-def test_mass_matrix_positive_definite():
+def test_mass_matrix_positive_definite() -> None:
+    """Test that the mass matrix is positive definite."""
     dynamics = TriplePendulumDynamics()
     state = TriplePendulumState(
         theta1=0.1, theta2=-0.2, theta3=0.3, omega1=0.0, omega2=0.0, omega3=0.0
@@ -18,7 +19,8 @@ def test_mass_matrix_positive_definite():
     assert np.all(eigenvalues > 0)
 
 
-def test_inverse_matches_forward():
+def test_inverse_matches_forward() -> None:
+    """Test that inverse dynamics consistent with forward dynamics."""
     dynamics = TriplePendulumDynamics()
     state = TriplePendulumState(
         theta1=0.2, theta2=-0.3, theta3=0.4, omega1=0.1, omega2=-0.2, omega3=0.05
