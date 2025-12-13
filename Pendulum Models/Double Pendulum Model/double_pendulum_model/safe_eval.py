@@ -7,7 +7,7 @@ from types import CodeType
 class SafeEvaluator:
     """Safely evaluates mathematical expressions using AST validation."""
 
-    _ALLOWED_NODES: typing.ClassVar[set] = {
+    _ALLOWED_NODES: typing.ClassVar[set[type[ast.AST]]] = {
         ast.Expression,
         ast.BinOp,
         ast.UnaryOp,
@@ -27,7 +27,7 @@ class SafeEvaluator:
         ast.BitXor,
     }
 
-    _ALLOWED_MATH_NAMES: typing.ClassVar[dict] = {
+    _ALLOWED_MATH_NAMES: typing.ClassVar[dict[str, typing.Any]] = {
         name: getattr(math, name)
         for name in (
             "sin",
@@ -66,7 +66,7 @@ class SafeEvaluator:
             if isinstance(node, ast.Call):
                 if not isinstance(node.func, ast.Name | ast.Attribute):
                     msg = "Only direct function calls permitted"
-                    raise ValueError(msg)
+                    raise TypeError(msg)
                 if isinstance(node.func, ast.Name) and node.func.id not in self.allowed_names:
                     msg = f"Function '{node.func.id}' not permitted"
                     raise ValueError(msg)
@@ -75,7 +75,8 @@ class SafeEvaluator:
     def compile(self, expression: str) -> CodeType:
         """Validates and compiles the expression."""
         parsed = self.validate(expression)
-        return compile(parsed, filename="<SafeEvaluator>", mode="eval")
+        # compile() returns CodeType when flags are not set to AST-returning flags
+        return typing.cast("CodeType", compile(parsed, filename="<SafeEvaluator>", mode="eval"))  # type: ignore[call-overload]
 
     def evaluate_code(self, code: CodeType, context: dict[str, float] | None = None) -> float:
         """Evaluates compiled code with the given context."""
