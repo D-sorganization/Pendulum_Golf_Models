@@ -48,11 +48,13 @@ class ExpressionFunction:
     """
 
     def __init__(self, expression: str) -> None:
+        """Initialize the expression function."""
         self._evaluator = SafeEvaluator(
             expression, allowed_variables={"t", "theta1", "theta2", "omega1", "omega2"}
         )
 
     def __call__(self, t: float, state: DoublePendulumState) -> float:
+        """Evaluate the expression for the given state and time."""
         context = {
             "t": t,
             "theta1": state.theta1,

@@ -52,6 +52,7 @@ class SafeEvaluator:
     def __init__(
         self, expression: str, allowed_variables: set[str] | None = None
     ) -> None:
+        """Initialize the SafeEvaluator with an expression and allowed variables."""
         self.expression = expression.strip()
         self.allowed_variables = allowed_variables or set()
 
@@ -61,9 +62,10 @@ class SafeEvaluator:
             raise ValueError(f"Invalid syntax: {e}") from e
 
         self._validate_ast(parsed)
-        self._code = compile(parsed, filename="<SafeEvaluator>", mode="eval")
+        self._code = compile(parsed, filename="SafeEvaluator", mode="eval")
 
     def __call__(self, context: dict[str, float] | None = None) -> float:
+        """Evaluate the expression within the given context."""
         context = context or {}
         safe_context = {**self._ALLOWED_FUNCTIONS, **context}
 
@@ -73,6 +75,7 @@ class SafeEvaluator:
         return float(eval(self._code, {"__builtins__": {}}, safe_context))
 
     def _validate_ast(self, node: ast.AST) -> None:
+        """Validate that the AST only contains allowed nodes and functions."""
         for child in ast.walk(node):
             if not isinstance(child, self._ALLOWED_NODES):
                 raise ValueError(
