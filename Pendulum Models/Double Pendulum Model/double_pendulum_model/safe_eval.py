@@ -3,11 +3,13 @@ Safe evaluation of user-provided mathematical expressions.
 """
 import ast
 import math
+import typing
+
 
 class SafeEvaluator:
     """Safe evaluation of user-provided expressions using AST whitelisting."""
 
-    _ALLOWED_NODES = {
+    _ALLOWED_NODES: typing.ClassVar[tuple] = (
         ast.Expression,
         ast.BinOp,
         ast.UnaryOp,
@@ -24,9 +26,9 @@ class SafeEvaluator:
         ast.Call,
         ast.Constant,
         ast.BitXor,
-    }
+    )
 
-    _ALLOWED_FUNCTIONS = {
+    _ALLOWED_FUNCTIONS: typing.ClassVar[dict] = {
         name: getattr(math, name)
         for name in (
             "sin",
@@ -63,20 +65,22 @@ class SafeEvaluator:
         safe_context = {**self._ALLOWED_FUNCTIONS, **context}
 
         # Ensure __builtins__ is not present or is empty
-        if "__builtins__" in safe_context:
-            del safe_context["__builtins__"]
+        safe_context.pop("__builtins__", None)
 
         return float(eval(self._code, {"__builtins__": {}}, safe_context))
 
     def _validate_ast(self, node: ast.AST) -> None:
         for child in ast.walk(node):
-            if type(child) not in self._ALLOWED_NODES:
+            if not isinstance(child, self._ALLOWED_NODES):
                 raise ValueError(f"Disallowed syntax in expression: {type(child).__name__}")
 
-            if isinstance(child, ast.Name):
-                if isinstance(child.ctx, ast.Load):
-                    if child.id not in self._ALLOWED_FUNCTIONS and child.id not in self.allowed_variables:
-                        raise ValueError(f"Use of unknown variable '{child.id}' in expression")
+            if (
+                isinstance(child, ast.Name)
+                and isinstance(child.ctx, ast.Load)
+                and child.id not in self._ALLOWED_FUNCTIONS
+                and child.id not in self.allowed_variables
+            ):
+                raise ValueError(f"Use of unknown variable '{child.id}' in expression")
 
             if isinstance(child, ast.Call):
                 if not isinstance(child.func, ast.Name):

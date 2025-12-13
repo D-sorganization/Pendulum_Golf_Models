@@ -50,6 +50,14 @@ exclude = [
     "TID253", # numpy.typing needed for type annotations
     "ANN401", # Any type needed for scipy OdeResult (no proper type stubs)
 ]
+# Safe evaluation module
+"**/double_pendulum_model/safe_eval.py" = [
+    "S307",   # Secure eval (AST validated)
+    "TRY003", # Long exception messages
+    "EM101",  # String literal in exception
+    "EM102",  # F-string in exception
+    "TRY004", # Prefer TypeError
+]
 # Physics files - allow type-checking imports and eval for expression parsing
 "**/physics/double_pendulum.py" = [
     "TCH003", # Type-checking imports
