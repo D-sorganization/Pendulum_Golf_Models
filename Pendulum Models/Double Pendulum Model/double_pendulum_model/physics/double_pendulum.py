@@ -261,7 +261,7 @@ class DoublePendulumDynamics:
         c1, c2 = self.coriolis_vector(state.theta2, state.omega1, state.omega2)
         g1, g2 = self.gravity_vector(state.theta1, state.theta2)
         d1, d2 = self.damping_vector(state.omega1, state.omega2)
-        mass, inv_m = self._invert_mass_matrix(state.theta2)
+        _, inv_m = self._invert_mass_matrix(state.theta2)
 
         drift_acc1 = -(inv_m[0][0] * (c1 + g1 + d1) + inv_m[0][1] * (c2 + g2 + d2))
         drift_acc2 = -(inv_m[1][0] * (c1 + g1 + d1) + inv_m[1][1] * (c2 + g2 + d2))
