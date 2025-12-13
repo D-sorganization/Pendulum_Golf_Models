@@ -14,13 +14,13 @@ from double_pendulum_model.physics.double_pendulum import (
     DoublePendulumState,
     compile_forcing_functions,
 )
-from double_pendulum_model.safe_eval import SafeEvaluator
 from double_pendulum_model.physics.triple_pendulum import (
     PolynomialProfile,
     TriplePendulumDynamics,
     TriplePendulumParameters,
     TriplePendulumState,
 )
+from double_pendulum_model.safe_eval import SafeEvaluator
 
 TIME_STEP = 0.01
 

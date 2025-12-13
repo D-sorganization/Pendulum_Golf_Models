@@ -1,5 +1,7 @@
-import pytest
 import math
+
+import pytest
+
 from double_pendulum_model.safe_eval import SafeEvaluator
 
 
@@ -17,32 +19,32 @@ def test_safe_eval_variables() -> None:
 
 def test_safe_eval_rejects_imports() -> None:
     """Test that imports are rejected."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid syntax"):
         SafeEvaluator("import os")
 
 
 def test_safe_eval_rejects_builtins() -> None:
     """Test that usage of builtins is rejected."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Only direct function calls are permitted"):
         SafeEvaluator("__import__('os').system('ls')")
 
 
 def test_safe_eval_rejects_attributes() -> None:
     """Test that attribute access is rejected."""
     # We disallowed ast.Attribute
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Only direct function calls are permitted"):
         SafeEvaluator("math.sin(0)")
 
 
 def test_safe_eval_rejects_unknown_variables() -> None:
     """Test that unknown variables are rejected."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Use of unknown variable"):
         SafeEvaluator("z")
 
 
 def test_safe_eval_rejects_complex_nodes() -> None:
     """Test that complex nodes (like list comprehensions) are rejected."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Disallowed syntax"):
         SafeEvaluator("[x for x in range(10)]")
 
 
