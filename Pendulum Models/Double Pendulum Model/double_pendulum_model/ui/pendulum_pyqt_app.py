@@ -14,6 +14,7 @@ from double_pendulum_model.physics.double_pendulum import (
     DoublePendulumState,
     compile_forcing_functions,
 )
+from double_pendulum_model.safe_eval import SafeEvaluator
 from double_pendulum_model.physics.triple_pendulum import (
     PolynomialProfile,
     TriplePendulumDynamics,
@@ -217,17 +218,8 @@ class PendulumController(QtWidgets.QWidget):
 
     def _safe_eval(self, expression: str) -> float:
         try:
-            return float(
-                eval(
-                    expression,
-                    {
-                        "__builtins__": {},
-                        "pi": math.pi,
-                        "sin": math.sin,
-                        "cos": math.cos,
-                    },
-                )
-            )
+            evaluator = SafeEvaluator(expression)
+            return evaluator()
         except Exception:
             return 0.0
 

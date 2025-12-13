@@ -1,0 +1,85 @@
+"""
+Safe evaluation of user-provided mathematical expressions.
+"""
+import ast
+import math
+
+class SafeEvaluator:
+    """Safe evaluation of user-provided expressions using AST whitelisting."""
+
+    _ALLOWED_NODES = {
+        ast.Expression,
+        ast.BinOp,
+        ast.UnaryOp,
+        ast.Name,
+        ast.Load,
+        ast.Add,
+        ast.Sub,
+        ast.Mult,
+        ast.Div,
+        ast.Pow,
+        ast.Mod,
+        ast.USub,
+        ast.UAdd,
+        ast.Call,
+        ast.Constant,
+        ast.BitXor,
+    }
+
+    _ALLOWED_FUNCTIONS = {
+        name: getattr(math, name)
+        for name in (
+            "sin",
+            "cos",
+            "tan",
+            "asin",
+            "acos",
+            "atan",
+            "atan2",
+            "sqrt",
+            "log",
+            "log10",
+            "exp",
+            "pi",
+            "tau",
+            "fabs",
+        )
+    }
+
+    def __init__(self, expression: str, allowed_variables: set[str] | None = None) -> None:
+        self.expression = expression.strip()
+        self.allowed_variables = allowed_variables or set()
+
+        try:
+            parsed = ast.parse(self.expression, mode="eval")
+        except SyntaxError as e:
+            raise ValueError(f"Invalid syntax: {e}") from e
+
+        self._validate_ast(parsed)
+        self._code = compile(parsed, filename="<SafeEvaluator>", mode="eval")
+
+    def __call__(self, context: dict[str, float] | None = None) -> float:
+        context = context or {}
+        safe_context = {**self._ALLOWED_FUNCTIONS, **context}
+
+        # Ensure __builtins__ is not present or is empty
+        if "__builtins__" in safe_context:
+            del safe_context["__builtins__"]
+
+        return float(eval(self._code, {"__builtins__": {}}, safe_context))
+
+    def _validate_ast(self, node: ast.AST) -> None:
+        for child in ast.walk(node):
+            if type(child) not in self._ALLOWED_NODES:
+                raise ValueError(f"Disallowed syntax in expression: {type(child).__name__}")
+
+            if isinstance(child, ast.Name):
+                if isinstance(child.ctx, ast.Load):
+                    if child.id not in self._ALLOWED_FUNCTIONS and child.id not in self.allowed_variables:
+                        raise ValueError(f"Use of unknown variable '{child.id}' in expression")
+
+            if isinstance(child, ast.Call):
+                if not isinstance(child.func, ast.Name):
+                    raise ValueError("Only direct function calls are permitted")
+                if child.func.id not in self._ALLOWED_FUNCTIONS:
+                    raise ValueError(f"Function '{child.func.id}' is not permitted")
