@@ -100,3 +100,13 @@ input.input-error {
 input.input-error:focus-visible {
   outline-color: #ff6b6b;
 }
+
+.input-help {
+  font-size: 0.75rem;
+  color: #8b9bb4;
+  margin-top: 0.2rem;
+}
+
+.input-help.error {
+  color: #ff6b6b;
+}

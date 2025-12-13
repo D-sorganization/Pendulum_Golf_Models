@@ -287,10 +287,19 @@ function reset() {
 
 ['tau1', 'tau2'].forEach(id => {
   const input = document.getElementById(id);
+  const help = document.getElementById(id + '-help');
   input.addEventListener('input', () => {
     const isValid = validateExpression(input.value);
     input.classList.toggle('input-error', !isValid);
     input.setAttribute('aria-invalid', !isValid);
+
+    if (isValid) {
+      help.textContent = "Vars: t, theta1, theta2, omega1, omega2";
+      help.className = "input-help";
+    } else {
+      help.textContent = "Invalid expression";
+      help.className = "input-help error";
+    }
   });
 });
 
