@@ -1,6 +1,7 @@
 """
 Safe evaluation of user-provided mathematical expressions.
 """
+
 import ast
 import math
 import typing
@@ -9,7 +10,7 @@ import typing
 class SafeEvaluator:
     """Safe evaluation of user-provided expressions using AST whitelisting."""
 
-    _ALLOWED_NODES: typing.ClassVar[tuple] = (
+    _ALLOWED_NODES: typing.ClassVar[tuple[type, ...]] = (
         ast.Expression,
         ast.BinOp,
         ast.UnaryOp,
@@ -28,7 +29,7 @@ class SafeEvaluator:
         ast.BitXor,
     )
 
-    _ALLOWED_FUNCTIONS: typing.ClassVar[dict] = {
+    _ALLOWED_FUNCTIONS: typing.ClassVar[dict[str, typing.Any]] = {
         name: getattr(math, name)
         for name in (
             "sin",
@@ -48,7 +49,9 @@ class SafeEvaluator:
         )
     }
 
-    def __init__(self, expression: str, allowed_variables: set[str] | None = None) -> None:
+    def __init__(
+        self, expression: str, allowed_variables: set[str] | None = None
+    ) -> None:
         self.expression = expression.strip()
         self.allowed_variables = allowed_variables or set()
 
@@ -72,7 +75,9 @@ class SafeEvaluator:
     def _validate_ast(self, node: ast.AST) -> None:
         for child in ast.walk(node):
             if not isinstance(child, self._ALLOWED_NODES):
-                raise ValueError(f"Disallowed syntax in expression: {type(child).__name__}")
+                raise ValueError(
+                    f"Disallowed syntax in expression: {type(child).__name__}"
+                )
 
             if (
                 isinstance(child, ast.Name)
