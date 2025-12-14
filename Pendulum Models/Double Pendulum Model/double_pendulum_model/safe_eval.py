@@ -74,7 +74,7 @@ class SafeEvaluator:
         self.allowed_variables = allowed_variables or set()
         self.allowed_names = {**self._ALLOWED_MATH_NAMES}
 
-    def validate(self, expression: str) -> ast.AST:  # noqa: C901
+    def validate(self, expression: str) -> ast.AST:  # noqa: C901, PLR0912
         """Parses and validates the expression against the allowlist."""
         try:
             parsed = ast.parse(expression.strip(), mode="eval")
@@ -82,6 +82,9 @@ class SafeEvaluator:
             raise ValueError(f"Invalid syntax: {e}") from e
 
         for node in ast.walk(parsed):
+            if isinstance(node, ast.BitXor):
+                raise ValueError("Use '**' for exponentiation instead of '^'")
+
             if type(node) not in self._ALLOWED_NODES:
                 raise ValueError(
                     f"Disallowed syntax in expression: {type(node).__name__}"
@@ -111,7 +114,7 @@ class SafeEvaluator:
         """Validates and compiles the expression."""
         parsed = self.validate(expression)
         return typing.cast(
-            CodeType, compile(parsed, filename="<SafeEvaluator>", mode="eval")  # type: ignore[call-overload]
+            "CodeType", compile(parsed, filename="<SafeEvaluator>", mode="eval")  # type: ignore[call-overload]
         )
 
     def evaluate_code(
@@ -120,16 +123,16 @@ class SafeEvaluator:
         """Evaluates compiled code with the given context."""
         # Start with context, but override with allowed math names to prevent shadowing
         # This addresses the risk of context={'sin': malicious_func}
-        eval_context = context.copy() if context else {}
+        eval_context: dict[str, typing.Any] = context.copy() if context else {}
         eval_context.update(self.allowed_names)
 
         # Execute with empty locals, everything in globals
-        # Defense in depth: pass safe_context as globals.
-        # Explicitly remove __builtins__ from custom dict to be sure.
-        if "__builtins__" in eval_context:
-            del eval_context["__builtins__"]
+        # Defense in depth: pass eval_context as globals.
+        # Explicitly remove __builtins__ and set it to empty dict.
+        eval_context.pop("__builtins__", None)
+        eval_context["__builtins__"] = {}
 
-        return float(eval(code, {"__builtins__": {}}, eval_context))
+        return float(eval(code, eval_context))
 
     def evaluate(
         self, expression: str, context: dict[str, float] | None = None

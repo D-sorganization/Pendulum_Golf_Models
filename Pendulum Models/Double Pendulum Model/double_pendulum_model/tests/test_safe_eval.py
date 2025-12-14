@@ -29,7 +29,10 @@ def test_safe_eval_rejects_builtins() -> None:
     """Test that usage of builtins is rejected."""
     evaluator = SafeEvaluator()
     # This involves Attribute access or Call of non-allowed name
-    with pytest.raises(ValueError, match="Disallowed syntax|Only direct function calls|Function .* is not permitted"):
+    with pytest.raises(
+        ValueError,
+        match="Disallowed syntax|Only direct function calls|Function .* is not permitted",
+    ):
         evaluator.validate("__import__('os').system('ls')")
 
 
@@ -62,5 +65,7 @@ def test_safe_eval_power_operator() -> None:
     assert evaluator.evaluate("2**3") == 8.0
 
     # Using ^ should raise a ValueError
-    with pytest.raises(ValueError, match="Disallowed syntax"):
+    with pytest.raises(
+        ValueError, match="Use '\\*\\*' for exponentiation instead of '\\^'"
+    ):
         evaluator.evaluate("2^3")
