@@ -49,9 +49,11 @@ class ExpressionFunction:
 
     def __init__(self, expression: str) -> None:
         """Initialize the expression function."""
-        self._evaluator = SafeEvaluator(
-            expression, allowed_variables={"t", "theta1", "theta2", "omega1", "omega2"}
+        self.expression = expression
+        self.evaluator = SafeEvaluator(
+            allowed_variables={"t", "theta1", "theta2", "omega1", "omega2"}
         )
+        self._code = self.evaluator.compile(expression)
 
     def __call__(self, t: float, state: DoublePendulumState) -> float:
         """Evaluate the expression for the given state and time."""
@@ -62,7 +64,7 @@ class ExpressionFunction:
             "omega1": state.omega1,
             "omega2": state.omega2,
         }
-        return self._evaluator(context)
+        return self.evaluator.evaluate_code(self._code, context)
 
 
 @dataclass
@@ -279,7 +281,7 @@ class DoublePendulumDynamics:
         c1, c2 = self.coriolis_vector(state.theta2, state.omega1, state.omega2)
         g1, g2 = self.gravity_vector(state.theta1, state.theta2)
         d1, d2 = self.damping_vector(state.omega1, state.omega2)
-        mass, inv_m = self._invert_mass_matrix(state.theta2)
+        _, inv_m = self._invert_mass_matrix(state.theta2)
 
         drift_acc1 = -(inv_m[0][0] * (c1 + g1 + d1) + inv_m[0][1] * (c2 + g2 + d2))
         drift_acc2 = -(inv_m[1][0] * (c1 + g1 + d1) + inv_m[1][1] * (c2 + g2 + d2))

@@ -58,6 +58,16 @@ function parseInputs() {
   params.tau1Expr = document.getElementById('tau1').value || '0';
   params.tau2Expr = document.getElementById('tau2').value || '0';
 
+  // Pre-calculate derived physical constants to avoid recomputation in loop
+  params.derived = {};
+  params.derived.m2 = params.mShaft + params.mHead;
+  params.derived.lc1 = params.l1 * params.com1;
+  params.derived.lc2 = params.l2 * params.com2;
+  params.derived.I1 = (1 / 12) * params.m1 * params.l1 * params.l1 + params.m1 * params.derived.lc1 * params.derived.lc1;
+  params.derived.I2 = (1 / 12) * params.derived.m2 * params.l2 * params.l2 + params.derived.m2 * params.derived.lc2 * params.derived.lc2;
+  const planeRad = params.plane * Math.PI / 180;
+  params.derived.gProj = gravity * Math.cos(planeRad);
+
   // Pre-compile torque functions
   const contextKeys = ['t', 'theta1', 'theta2', 'omega1', 'omega2', 'Math'];
   try {
@@ -94,11 +104,7 @@ function safeEval(expr, context) {
 }
 
 function massMatrix(theta2) {
-  const m2 = params.mShaft + params.mHead;
-  const lc1 = params.l1 * params.com1;
-  const lc2 = params.l2 * params.com2;
-  const I1 = (1 / 12) * params.m1 * params.l1 * params.l1 + params.m1 * lc1 * lc1;
-  const I2 = (1 / 12) * m2 * params.l2 * params.l2 + m2 * lc2 * lc2;
+  const { m2, lc1, lc2, I1, I2 } = params.derived;
   const cos2 = Math.cos(theta2);
   const m11 = I1 + I2 + params.m1 * lc1 * lc1 + m2 * (params.l1 ** 2 + lc2 ** 2 + 2 * params.l1 * lc2 * cos2);
   const m12 = I2 + m2 * (lc2 ** 2 + params.l1 * lc2 * cos2);
@@ -107,17 +113,13 @@ function massMatrix(theta2) {
 }
 
 function coriolis(theta2, omega1, omega2) {
-  const m2 = params.mShaft + params.mHead;
-  const lc2 = params.l2 * params.com2;
+  const { m2, lc2 } = params.derived;
   const h = -m2 * params.l1 * lc2 * Math.sin(theta2);
   return [h * (2 * omega1 * omega2 + omega2 ** 2), h * omega1 ** 2];
 }
 
 function gravityVector(theta1, theta2) {
-  const gProj = gravity * Math.cos(params.plane * Math.PI / 180);
-  const m2 = params.mShaft + params.mHead;
-  const lc1 = params.l1 * params.com1;
-  const lc2 = params.l2 * params.com2;
+  const { m2, lc1, lc2, gProj } = params.derived;
   const g1 = (params.m1 * lc1 + m2 * params.l1) * gProj * Math.sin(theta1) + m2 * lc2 * gProj * Math.sin(theta1 + theta2);
   const g2 = m2 * lc2 * gProj * Math.sin(theta1 + theta2);
   return [g1, g2];
@@ -287,10 +289,19 @@ function reset() {
 
 ['tau1', 'tau2'].forEach(id => {
   const input = document.getElementById(id);
+  const help = document.getElementById(id + '-help');
   input.addEventListener('input', () => {
     const isValid = validateExpression(input.value);
     input.classList.toggle('input-error', !isValid);
     input.setAttribute('aria-invalid', !isValid);
+
+    if (isValid) {
+      help.textContent = "Vars: t, theta1, theta2, omega1, omega2";
+      help.className = "input-help";
+    } else {
+      help.textContent = "Invalid expression";
+      help.className = "input-help error";
+    }
   });
 });
 

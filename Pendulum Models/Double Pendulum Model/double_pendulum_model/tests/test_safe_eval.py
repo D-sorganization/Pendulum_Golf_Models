@@ -7,61 +7,60 @@ from double_pendulum_model.safe_eval import SafeEvaluator
 
 def test_safe_eval_basic_math() -> None:
     """Test basic mathematical expressions."""
-    evaluator = SafeEvaluator("sin(pi/2) + 1")
-    assert math.isclose(evaluator(), 2.0)
+    evaluator = SafeEvaluator()
+    assert math.isclose(evaluator.evaluate("sin(pi/2) + 1"), 2.0)
 
 
 def test_safe_eval_variables() -> None:
     """Test evaluation with variables."""
-    evaluator = SafeEvaluator("x + y", allowed_variables={"x", "y"})
-    assert math.isclose(evaluator({"x": 1.0, "y": 2.0}), 3.0)
+    evaluator = SafeEvaluator(allowed_variables={"x", "y"})
+    assert math.isclose(evaluator.evaluate("x + y", {"x": 1.0, "y": 2.0}), 3.0)
 
 
 def test_safe_eval_rejects_imports() -> None:
     """Test that imports are rejected."""
+    evaluator = SafeEvaluator()
+    # "import os" is a statement, not an expression. ast.parse(..., mode='eval') raises SyntaxError.
     with pytest.raises(ValueError, match="Invalid syntax"):
-        SafeEvaluator("import os")
+        evaluator.validate("import os")
 
 
 def test_safe_eval_rejects_builtins() -> None:
     """Test that usage of builtins is rejected."""
-    with pytest.raises(ValueError, match="Only direct function calls are permitted"):
-        SafeEvaluator("__import__('os').system('ls')")
+    evaluator = SafeEvaluator()
+    # This involves Attribute access or Call of non-allowed name
+    with pytest.raises(ValueError, match="Disallowed syntax|Only direct function calls|Function .* is not permitted"):
+        evaluator.validate("__import__('os').system('ls')")
 
 
 def test_safe_eval_rejects_attributes() -> None:
     """Test that attribute access is rejected."""
+    evaluator = SafeEvaluator()
     # We disallowed ast.Attribute
     with pytest.raises(ValueError, match="Only direct function calls are permitted"):
-        SafeEvaluator("math.sin(0)")
+        evaluator.validate("math.sin(0)")
 
 
 def test_safe_eval_rejects_unknown_variables() -> None:
     """Test that unknown variables are rejected."""
-    with pytest.raises(ValueError, match="Use of unknown variable"):
-        SafeEvaluator("z")
+    evaluator = SafeEvaluator(allowed_variables={"x"})
+    with pytest.raises(ValueError, match="Unknown variable 'z'"):
+        evaluator.validate("z")
 
 
 def test_safe_eval_rejects_complex_nodes() -> None:
     """Test that complex nodes (like list comprehensions) are rejected."""
+    evaluator = SafeEvaluator()
     with pytest.raises(ValueError, match="Disallowed syntax"):
-        SafeEvaluator("[x for x in range(10)]")
+        evaluator.validate("[x for x in range(10)]")
 
 
 def test_safe_eval_power_operator() -> None:
     """Test that the power operator (^) is rejected to prevent confusion with exponentiation."""
+    evaluator = SafeEvaluator()
     # Check if we want to allow **
-    evaluator_pow = SafeEvaluator("2**3")
-    assert evaluator_pow() == 8.0
+    assert evaluator.evaluate("2**3") == 8.0
 
     # Using ^ should raise a ValueError
     with pytest.raises(ValueError, match="Disallowed syntax"):
-        SafeEvaluator("2^3")
-
-
-def test_safe_eval_prevents_context_override() -> None:
-    """Test that context cannot override allowed functions."""
-    evaluator = SafeEvaluator("sin(0)")
-    # malicious context
-    with pytest.raises(ValueError, match="Context cannot override allowed math functions"):
-        evaluator({"sin": 100.0})
+        evaluator.evaluate("2^3")

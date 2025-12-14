@@ -5,12 +5,13 @@ Safe evaluation of user-provided mathematical expressions.
 import ast
 import math
 import typing
+from types import CodeType
 
 
 class SafeEvaluator:
     """Safe evaluation of user-provided expressions using AST whitelisting."""
 
-    _ALLOWED_NODES: typing.ClassVar[tuple[type, ...]] = (
+    _ALLOWED_NODES: typing.ClassVar[set[type[ast.AST]]] = {
         ast.Expression,
         ast.BinOp,
         ast.UnaryOp,
@@ -27,19 +28,28 @@ class SafeEvaluator:
         ast.Call,
         ast.Constant,
         # ast.BitXor is excluded to prevent confusion with exponentiation (^)
-    )
+        # ast.Attribute is excluded to prevent access to object internals
+    }
     """
     Allowlist of AST node types permitted in user expressions.
-    - ast.Expression: Root node.
-    - ast.BinOp, ast.UnaryOp: Arithmetic operations.
-    - ast.Name, ast.Load: Variable access.
-    - ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod: Specific operators.
-    - ast.USub, ast.UAdd: Unary operators.
-    - ast.Call: Function calls (whitelisted functions only).
-    - ast.Constant: Literals.
+
+    - ast.Expression: Root node for 'eval' mode.
+    - ast.BinOp, ast.UnaryOp: Basic arithmetic structure.
+    - ast.Name, ast.Load: Safe variable and function access (validated against allowed lists).
+    - ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod: Arithmetic operators.
+    - ast.USub, ast.UAdd: Unary operators (negation).
+    - ast.Call: Function calls (strictly validated against allowed functions).
+    - ast.Constant: Literal values (numbers).
+
+    Explicitly Excluded:
+    - ast.Attribute: Prevents object attribute access (e.g. `obj.__class__`).
+    - ast.BitXor: Prevents `^` operator, often mistaken for exponentiation in math.
+    - ast.Import, ast.ImportFrom: Prevents module loading.
+    - ast.Lambda, ast.FunctionDef: Prevents function definition.
+    - ast.Subscript: Prevents indexing/slicing (e.g. `"".__class__.__mro__[1]`).
     """
 
-    _ALLOWED_FUNCTIONS: typing.ClassVar[dict[str, typing.Any]] = {
+    _ALLOWED_MATH_NAMES: typing.ClassVar[dict[str, typing.Any]] = {
         name: getattr(math, name)
         for name in (
             "sin",
@@ -59,52 +69,71 @@ class SafeEvaluator:
         )
     }
 
-    def __init__(
-        self, expression: str, allowed_variables: set[str] | None = None
-    ) -> None:
-        """Initialize the SafeEvaluator with an expression and allowed variables."""
-        self.expression = expression.strip()
+    def __init__(self, allowed_variables: set[str] | None = None) -> None:
+        """Initialize the SafeEvaluator with a set of allowed variable names."""
         self.allowed_variables = allowed_variables or set()
+        self.allowed_names = {**self._ALLOWED_MATH_NAMES}
 
+    def validate(self, expression: str) -> ast.AST:  # noqa: C901
+        """Parses and validates the expression against the allowlist."""
         try:
-            parsed = ast.parse(self.expression, mode="eval")
+            parsed = ast.parse(expression.strip(), mode="eval")
         except SyntaxError as e:
             raise ValueError(f"Invalid syntax: {e}") from e
 
-        self._validate_ast(parsed)
-        self._code = compile(parsed, filename="SafeEvaluator", mode="eval")
-
-    def __call__(self, context: dict[str, float] | None = None) -> float:
-        """Evaluate the expression within the given context."""
-        context = context or {}
-        if any(key in self._ALLOWED_FUNCTIONS for key in context):
-            raise ValueError("Context cannot override allowed math functions")
-
-        safe_context = {**self._ALLOWED_FUNCTIONS, **context}
-
-        # Ensure __builtins__ is not present or is empty
-        safe_context.pop("__builtins__", None)
-
-        return float(eval(self._code, {"__builtins__": {}}, safe_context))
-
-    def _validate_ast(self, node: ast.AST) -> None:
-        """Validate that the AST only contains allowed nodes and functions."""
-        for child in ast.walk(node):
-            if not isinstance(child, self._ALLOWED_NODES):
+        for node in ast.walk(parsed):
+            if type(node) not in self._ALLOWED_NODES:
                 raise ValueError(
-                    f"Disallowed syntax in expression: {type(child).__name__}"
+                    f"Disallowed syntax in expression: {type(node).__name__}"
                 )
 
-            if (
-                isinstance(child, ast.Name)
-                and isinstance(child.ctx, ast.Load)
-                and child.id not in self._ALLOWED_FUNCTIONS
-                and child.id not in self.allowed_variables
-            ):
-                raise ValueError(f"Use of unknown variable '{child.id}' in expression")
+            if isinstance(node, ast.Name):
+                if isinstance(node.ctx, ast.Load):
+                    if (
+                        node.id not in self.allowed_variables
+                        and node.id not in self.allowed_names
+                    ):
+                        raise ValueError(f"Unknown variable '{node.id}'")
+                elif not isinstance(node.ctx, ast.Load):
+                    # Should be caught by node type check (only Load is in ALLOWED_NODES usually)
+                    # But explicitly:
+                    raise ValueError("Variable assignment/store is not allowed")
 
-            if isinstance(child, ast.Call):
-                if not isinstance(child.func, ast.Name):
+            if isinstance(node, ast.Call):
+                if not isinstance(node.func, ast.Name):
                     raise ValueError("Only direct function calls are permitted")
-                if child.func.id not in self._ALLOWED_FUNCTIONS:
-                    raise ValueError(f"Function '{child.func.id}' is not permitted")
+                if node.func.id not in self.allowed_names:
+                    raise ValueError(f"Function '{node.func.id}' is not permitted")
+
+        return parsed
+
+    def compile(self, expression: str) -> CodeType:
+        """Validates and compiles the expression."""
+        parsed = self.validate(expression)
+        return typing.cast(
+            CodeType, compile(parsed, filename="<SafeEvaluator>", mode="eval")  # type: ignore[call-overload]
+        )
+
+    def evaluate_code(
+        self, code: CodeType, context: dict[str, float] | None = None
+    ) -> float:
+        """Evaluates compiled code with the given context."""
+        # Start with context, but override with allowed math names to prevent shadowing
+        # This addresses the risk of context={'sin': malicious_func}
+        eval_context = context.copy() if context else {}
+        eval_context.update(self.allowed_names)
+
+        # Execute with empty locals, everything in globals
+        # Defense in depth: pass safe_context as globals.
+        # Explicitly remove __builtins__ from custom dict to be sure.
+        if "__builtins__" in eval_context:
+            del eval_context["__builtins__"]
+
+        return float(eval(code, {"__builtins__": {}}, eval_context))
+
+    def evaluate(
+        self, expression: str, context: dict[str, float] | None = None
+    ) -> float:
+        """Evaluates the expression with the given context."""
+        code = self.compile(expression)
+        return self.evaluate_code(code, context)

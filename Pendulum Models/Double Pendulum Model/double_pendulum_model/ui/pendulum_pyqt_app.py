@@ -229,8 +229,9 @@ class PendulumController(QtWidgets.QWidget):
     def _safe_eval(self, expression: str) -> float:
         """Safely evaluate a mathematical expression, returning 0.0 on error."""
         try:
-            evaluator = SafeEvaluator(expression)
-            return evaluator()
+            # For immediate evaluation in UI, we don't allow variables
+            evaluator = SafeEvaluator(allowed_variables=set())
+            return evaluator.evaluate(expression)
         except Exception:
             return 0.0
 
