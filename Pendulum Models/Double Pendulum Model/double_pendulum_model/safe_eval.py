@@ -26,8 +26,18 @@ class SafeEvaluator:
         ast.UAdd,
         ast.Call,
         ast.Constant,
-        ast.BitXor,
+        # ast.BitXor is excluded to prevent confusion with exponentiation (^)
     )
+    """
+    Allowlist of AST node types permitted in user expressions.
+    - ast.Expression: Root node.
+    - ast.BinOp, ast.UnaryOp: Arithmetic operations.
+    - ast.Name, ast.Load: Variable access.
+    - ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod: Specific operators.
+    - ast.USub, ast.UAdd: Unary operators.
+    - ast.Call: Function calls (whitelisted functions only).
+    - ast.Constant: Literals.
+    """
 
     _ALLOWED_FUNCTIONS: typing.ClassVar[dict[str, typing.Any]] = {
         name: getattr(math, name)

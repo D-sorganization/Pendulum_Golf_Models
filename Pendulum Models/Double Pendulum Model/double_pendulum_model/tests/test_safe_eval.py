@@ -49,7 +49,11 @@ def test_safe_eval_rejects_complex_nodes() -> None:
 
 
 def test_safe_eval_power_operator() -> None:
-    """Test that the power operator (^) is treated as bitwise XOR (or check behavior)."""
-    evaluator = SafeEvaluator("2^3")  # ast.BitXor
-    # Python ^ is XOR. 2^3 = 1.
-    assert evaluator() == 1.0
+    """Test that the power operator (^) is rejected to prevent confusion with exponentiation."""
+    # Check if we want to allow **
+    evaluator_pow = SafeEvaluator("2**3")
+    assert evaluator_pow() == 8.0
+
+    # Using ^ should raise a ValueError
+    with pytest.raises(ValueError, match="Disallowed syntax"):
+        SafeEvaluator("2^3")
