@@ -19,6 +19,7 @@ from double_pendulum_model.physics.double_pendulum import (  # noqa: E402
 
 
 def test_expression_function_allows_state_variables() -> None:
+    """Test that expression function correctly uses state variables."""
     expr = ExpressionFunction("0.5*sin(t) + 0.1*theta1 - 0.2*omega2")
     state = DoublePendulumState(theta1=0.2, theta2=-0.1, omega1=0.0, omega2=1.0)
     value = expr(1.0, state)
@@ -27,6 +28,7 @@ def test_expression_function_allows_state_variables() -> None:
 
 
 def test_control_affine_matches_explicit_dynamics() -> None:
+    """Test that control affine dynamics match explicit dynamics derivatives."""
     control = (3.0, -1.0)
     parameters = DoublePendulumParameters.default()
     dynamics = DoublePendulumDynamics(
@@ -42,10 +44,13 @@ def test_control_affine_matches_explicit_dynamics() -> None:
         f[3] + control_matrix[3][0] * control[0] + control_matrix[3][1] * control[1],
     )
     derivatives = dynamics.derivatives(0.0, state)
-    assert all(math.isclose(combined[i], derivatives[i], rel_tol=1e-9) for i in range(4))
+    assert all(
+        math.isclose(combined[i], derivatives[i], rel_tol=1e-9) for i in range(4)
+    )
 
 
 def test_joint_torque_breakdown_reports_components() -> None:
+    """Test that joint torque breakdown reports valid components."""
     parameters = DoublePendulumParameters.default()
     dynamics = DoublePendulumDynamics(parameters)
     state = DoublePendulumState(theta1=0.1, theta2=0.2, omega1=0.5, omega2=-0.3)
@@ -58,15 +63,18 @@ def test_joint_torque_breakdown_reports_components() -> None:
 
 
 def test_gravity_projection_respects_plane_inclination() -> None:
+    """Test that gravity projection respects plane inclination."""
     parameters = DoublePendulumParameters.default()
     projected = parameters.projected_gravity
     assert math.isclose(
         projected,
-        parameters.gravity_m_s2 * math.cos(math.radians(parameters.plane_inclination_deg)),
+        parameters.gravity_m_s2
+        * math.cos(math.radians(parameters.plane_inclination_deg)),
     )
 
 
 def test_singular_mass_matrix_is_detected() -> None:
+    """Test that singular mass matrix is detected and raises error."""
     upper_segment = SegmentProperties(
         length_m=0.0,
         mass_kg=1.0,
@@ -76,7 +84,9 @@ def test_singular_mass_matrix_is_detected() -> None:
     lower_segment = LowerSegmentProperties(
         length_m=0.0, shaft_mass_kg=1.0, clubhead_mass_kg=1.0, shaft_com_ratio=0.5
     )
-    parameters = DoublePendulumParameters(upper_segment=upper_segment, lower_segment=lower_segment)
+    parameters = DoublePendulumParameters(
+        upper_segment=upper_segment, lower_segment=lower_segment
+    )
     dynamics = DoublePendulumDynamics(parameters)
     state = DoublePendulumState(theta1=0.0, theta2=0.0, omega1=0.0, omega2=0.0)
     with pytest.raises(ZeroDivisionError):
