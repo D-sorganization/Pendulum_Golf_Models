@@ -77,6 +77,9 @@ class SafeEvaluator:
     def __call__(self, context: dict[str, float] | None = None) -> float:
         """Evaluate the expression within the given context."""
         context = context or {}
+        if any(key in self._ALLOWED_FUNCTIONS for key in context):
+            raise ValueError("Context cannot override allowed math functions")
+
         safe_context = {**self._ALLOWED_FUNCTIONS, **context}
 
         # Ensure __builtins__ is not present or is empty

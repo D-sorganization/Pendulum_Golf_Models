@@ -57,3 +57,11 @@ def test_safe_eval_power_operator() -> None:
     # Using ^ should raise a ValueError
     with pytest.raises(ValueError, match="Disallowed syntax"):
         SafeEvaluator("2^3")
+
+
+def test_safe_eval_prevents_context_override() -> None:
+    """Test that context cannot override allowed functions."""
+    evaluator = SafeEvaluator("sin(0)")
+    # malicious context
+    with pytest.raises(ValueError, match="Context cannot override allowed math functions"):
+        evaluator({"sin": 100.0})
